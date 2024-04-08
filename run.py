@@ -4,7 +4,7 @@ from functools import partial
 
 # importing game runners
 from games.snake.snake import run_snake
-from games.tetris.tetris import *
+from games.tetris.tetris import run_tetris
 
 # main window
 root = tk.Tk()
@@ -41,21 +41,21 @@ def snake_run_handler(current_window):
     current_window.deiconify()
 
 
-# def tetris_run_handler(current_window):
-#     try:
-#         current_window.withdraw()
-#         run_tetris()
-#     except Exception as e:
-#         print('Error occured:', str(e))
-#
-#     current_window.deiconify()
+def tetris_run_handler(current_window):
+    try:
+        current_window.withdraw()
+        run_tetris()
+    except Exception as e:
+        print('Error occured:', str(e))
+
+    current_window.deiconify()
 
 
 # add buttons
 btn1 = tk.Button(games_frame, image=snake_picture, command=partial(snake_run_handler, root))
 btn1.grid(row=0, column=0, sticky='we')
 
-btn2 = tk.Button(games_frame, image=snake_picture, command=partial(snake_run_handler, root))
+btn2 = tk.Button(games_frame, image=tetris_picture, command=partial(tetris_run_handler, root))
 btn2.grid(row=0, column=1, sticky='we')
 
 btn3 = tk.Button(games_frame, image=snake_picture, command=partial(snake_run_handler, root))

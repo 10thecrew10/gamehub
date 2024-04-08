@@ -1,395 +1,327 @@
 import pygame
 import random
-
-"""
-10 x 20 square grid
-shapes: S, Z, I, O, J, L, T
-represented in order by 0 - 6
-"""
-
-pygame.font.init()
-
-# GLOBALS VARS
-s_width = 800
-s_height = 700
-play_width = 300  # meaning 300 // 10 = 30 width per block
-play_height = 600  # meaning 600 // 20 = 20 height per blo ck
-block_size = 30
-
-top_left_x = (s_width - play_width) // 2
-top_left_y = s_height - play_height
-
-
-# SHAPE FORMATS
-
-S = [['.....',
-      '.....',
-      '..00.',
-      '.00..',
-      '.....'],
-     ['.....',
-      '..0..',
-      '..00.',
-      '...0.',
-      '.....']]
-
-Z = [['.....',
-      '.....',
-      '.00..',
-      '..00.',
-      '.....'],
-     ['.....',
-      '..0..',
-      '.00..',
-      '.0...',
-      '.....']]
-
-I = [['..0..',
-      '..0..',
-      '..0..',
-      '..0..',
-      '.....'],
-     ['.....',
-      '0000.',
-      '.....',
-      '.....',
-      '.....']]
-
-O = [['.....',
-      '.....',
-      '.00..',
-      '.00..',
-      '.....']]
-
-J = [['.....',
-      '.0...',
-      '.000.',
-      '.....',
-      '.....'],
-     ['.....',
-      '..00.',
-      '..0..',
-      '..0..',
-      '.....'],
-     ['.....',
-      '.....',
-      '.000.',
-      '...0.',
-      '.....'],
-     ['.....',
-      '..0..',
-      '..0..',
-      '.00..',
-      '.....']]
-
-L = [['.....',
-      '...0.',
-      '.000.',
-      '.....',
-      '.....'],
-     ['.....',
-      '..0..',
-      '..0..',
-      '..00.',
-      '.....'],
-     ['.....',
-      '.....',
-      '.000.',
-      '.0...',
-      '.....'],
-     ['.....',
-      '.00..',
-      '..0..',
-      '..0..',
-      '.....']]
-
-T = [['.....',
-      '..0..',
-      '.000.',
-      '.....',
-      '.....'],
-     ['.....',
-      '..0..',
-      '..00.',
-      '..0..',
-      '.....'],
-     ['.....',
-      '.....',
-      '.000.',
-      '..0..',
-      '.....'],
-     ['.....',
-      '..0..',
-      '.00..',
-      '..0..',
-      '.....']]
-
-shapes = [S, Z, I, O, J, L, T]
-shape_colors = [(0, 255, 0), (255, 0, 0), (0, 255, 255), (255, 255, 0), (255, 165, 0), (0, 0, 255), (128, 0, 128)]
-# index 0 - 6 represent shape
-
-
-class Piece(object):
-    rows = 20  # y
-    columns = 10  # x
-
-    def __init__(self, column, row, shape):
-        self.x = column
-        self.y = row
-        self.shape = shape
-        self.color = shape_colors[shapes.index(shape)]
-        self.rotation = 0  # number from 0-3
-
-
-def create_grid(locked_positions={}):
-    grid = [[(0,0,0) for x in range(10)] for x in range(20)]
-
-    for i in range(len(grid)):
-        for j in range(len(grid[i])):
-            if (j,i) in locked_positions:
-                c = locked_positions[(j,i)]
-                grid[i][j] = c
-    return grid
-
-
-def convert_shape_format(shape):
-    positions = []
-    format = shape.shape[shape.rotation % len(shape.shape)]
-
-    for i, line in enumerate(format):
-        row = list(line)
-        for j, column in enumerate(row):
-            if column == '0':
-                positions.append((shape.x + j, shape.y + i))
-
-    for i, pos in enumerate(positions):
-        positions[i] = (pos[0] - 2, pos[1] - 4)
-
-    return positions
-
-
-def valid_space(shape, grid):
-    accepted_positions = [[(j, i) for j in range(10) if grid[i][j] == (0,0,0)] for i in range(20)]
-    accepted_positions = [j for sub in accepted_positions for j in sub]
-    formatted = convert_shape_format(shape)
-
-    for pos in formatted:
-        if pos not in accepted_positions:
-            if pos[1] > -1:
-                return False
-
-    return True
-
-
-def check_lost(positions):
-    for pos in positions:
-        x, y = pos
-        if y < 1:
-            return True
-    return False
-
-
-def get_shape():
-    global shapes, shape_colors
-
-    return Piece(5, 0, random.choice(shapes))
-
-
-def draw_text_middle(text, size, color, surface):
-    font = pygame.font.SysFont('comicsans', size, bold=True)
-    label = font.render(text, 1, color)
-
-    surface.blit(label, (top_left_x + play_width/2 - (label.get_width() / 2), top_left_y + play_height/2 - label.get_height()/2))
-
-
-def draw_grid(surface, row, col):
-    sx = top_left_x
-    sy = top_left_y
-    for i in range(row):
-        pygame.draw.line(surface, (128,128,128), (sx, sy+ i*30), (sx + play_width, sy + i * 30))  # horizontal lines
-        for j in range(col):
-            pygame.draw.line(surface, (128,128,128), (sx + j * 30, sy), (sx + j * 30, sy + play_height))  # vertical lines
-
-
-def clear_rows(grid, locked):
-    # need to see if row is clear the shift every other row above down one
-
-    inc = 0
-    for i in range(len(grid)-1,-1,-1):
-        row = grid[i]
-        if (0, 0, 0) not in row:
-            inc += 1
-            # add positions to remove from locked
-            ind = i
-            for j in range(len(row)):
-                try:
-                    del locked[(j, i)]
-                except:
-                    continue
-    if inc > 0:
-        for key in sorted(list(locked), key=lambda x: x[1])[::-1]:
-            x, y = key
-            if y < ind:
-                newKey = (x, y + inc)
-                locked[newKey] = locked.pop(key)
-
-
-def draw_next_shape(shape, surface):
-    font = pygame.font.SysFont('comicsans', 30)
-    label = font.render('Next Shape', 1, (255,255,255))
-
-    sx = top_left_x + play_width + 50
-    sy = top_left_y + play_height/2 - 100
-    format = shape.shape[shape.rotation % len(shape.shape)]
-
-    for i, line in enumerate(format):
-        row = list(line)
-        for j, column in enumerate(row):
-            if column == '0':
-                pygame.draw.rect(surface, shape.color, (sx + j*30, sy + i*30, 30, 30), 0)
-
-    surface.blit(label, (sx + 10, sy- 30))
-
-
-def draw_window(surface):
-    surface.fill((0,0,0))
-    # Tetris Title
-    font = pygame.font.SysFont('comicsans', 60)
-    label = font.render('TETRIS', 1, (255,255,255))
-
-    surface.blit(label, (top_left_x + play_width / 2 - (label.get_width() / 2), 30))
-
-    for i in range(len(grid)):
-        for j in range(len(grid[i])):
-            pygame.draw.rect(surface, grid[i][j], (top_left_x + j* 30, top_left_y + i * 30, 30, 30), 0)
-
-    # draw grid and border
-    draw_grid(surface, 20, 10)
-    pygame.draw.rect(surface, (255, 0, 0), (top_left_x, top_left_y, play_width, play_height), 5)
-    # pygame.display.update()
-
-
-def main(win):
-    global grid
-
-    locked_positions = {}  # (x,y):(255,0,0)
-    grid = create_grid(locked_positions)
-
-    change_piece = False
-    run = True
-    current_piece = get_shape()
-    next_piece = get_shape()
-    clock = pygame.time.Clock()
-    fall_time = 0
-    level_time = 0
-    fall_speed = 0.27
-    score = 0
-
-    while run:
-
-        grid = create_grid(locked_positions)
-        fall_time += clock.get_rawtime()
-        level_time += clock.get_rawtime()
-        clock.tick()
-
-        if level_time/1000 > 4:
-            level_time = 0
-            if fall_speed > 0.15:
-                fall_speed -= 0.005
-
-
-        # PIECE FALLING CODE
-        if fall_time/1000 >= fall_speed:
-            fall_time = 0
-            current_piece.y += 1
-            if not (valid_space(current_piece, grid)) and current_piece.y > 0:
-                current_piece.y -= 1
-                change_piece = True
-
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                run = False
-                pygame.display.quit()
-                quit()
-
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_LEFT:
-                    current_piece.x -= 1
-                    if not valid_space(current_piece, grid):
-                        current_piece.x += 1
-
-                elif event.key == pygame.K_RIGHT:
-                    current_piece.x += 1
-                    if not valid_space(current_piece, grid):
-                        current_piece.x -= 1
-                elif event.key == pygame.K_UP:
-                    # rotate shape
-                    current_piece.rotation = current_piece.rotation + 1 % len(current_piece.shape)
-                    if not valid_space(current_piece, grid):
-                        current_piece.rotation = current_piece.rotation - 1 % len(current_piece.shape)
-
-                if event.key == pygame.K_DOWN:
-                    # move shape down
-                    current_piece.y += 1
-                    if not valid_space(current_piece, grid):
-                        current_piece.y -= 1
-
-                '''if event.key == pygame.K_SPACE:
-                    while valid_space(current_piece, grid):
-                        current_piece.y += 1
-                    current_piece.y -= 1
-                    print(convert_shape_format(current_piece))'''  # todo fix
-
-        shape_pos = convert_shape_format(current_piece)
-
-        # add piece to the grid for drawing
-        for i in range(len(shape_pos)):
-            x, y = shape_pos[i]
-            if y > -1:
-                grid[y][x] = current_piece.color
-
-        # IF PIECE HIT GROUND
-        if change_piece:
-            for pos in shape_pos:
-                p = (pos[0], pos[1])
-                locked_positions[p] = current_piece.color
-            current_piece = next_piece
-            next_piece = get_shape()
-            change_piece = False
-
-            # call four times to check for multiple clear rows
-            if clear_rows(grid, locked_positions):
-                score += 10
-
-        draw_window(win)
-        draw_next_shape(next_piece, win)
-        pygame.display.update()
-
-        # Check if user lost
-        if check_lost(locked_positions):
-            run = False
-
-    draw_text_middle("You Lost", 40, (255,255,255), win)
-    pygame.display.update()
-    pygame.time.delay(2000)
-
-
-def main_menu(win):
-    run = True
-    while run:
-        win.fill((0,0,0))
-        draw_text_middle('Press any key to begin.', 60, (255, 255, 255), win)
-        pygame.display.update()
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                run = False
-
-            if event.type == pygame.KEYDOWN:
-                main(win)  # run main part of a game
+import math
+
+from . import block, constants
+
+
+class Tetris(object):
+    """
+    The class with implementation of tetris game logic.
+    """
+
+    def __init__(self, bx, by):
+        """
+        Initialize the tetris object.
+
+        Parameters:
+            - bx - number of blocks in x
+            - by - number of blocks in y
+        """
+        # Compute the resolution of the play board based on the required number of blocks.
+        self.resx = bx * constants.BWIDTH + 2 * constants.BOARD_HEIGHT + constants.BOARD_MARGIN
+        self.resy = by * constants.BHEIGHT + 2 * constants.BOARD_HEIGHT + constants.BOARD_MARGIN
+        # Prepare the pygame board objects (white lines)
+        self.board_up = pygame.Rect(0, constants.BOARD_UP_MARGIN, self.resx, constants.BOARD_HEIGHT)
+        self.board_down = pygame.Rect(0, self.resy - constants.BOARD_HEIGHT, self.resx, constants.BOARD_HEIGHT)
+        self.board_left = pygame.Rect(0, constants.BOARD_UP_MARGIN, constants.BOARD_HEIGHT, self.resy)
+        self.board_right = pygame.Rect(self.resx - constants.BOARD_HEIGHT, constants.BOARD_UP_MARGIN,
+                                       constants.BOARD_HEIGHT, self.resy)
+        # List of used blocks
+        self.blk_list = []
+        # Compute start indexes for tetris blocks
+        self.start_x = math.ceil(self.resx / 2.0)
+        self.start_y = constants.BOARD_UP_MARGIN + constants.BOARD_HEIGHT + constants.BOARD_MARGIN
+        # Blocka data (shapes and colors). The shape is encoded in the list of [X,Y] points. Each point
+        # represents the relative position. The true/false value is used for the configuration of rotation where
+        # False means no rotate and True allows the rotation.
+        self.block_data = (
+            ([[0, 0], [1, 0], [2, 0], [3, 0]], constants.RED, True),  # I block
+            ([[0, 0], [1, 0], [0, 1], [-1, 1]], constants.GREEN, True),  # S block
+            ([[0, 0], [1, 0], [2, 0], [2, 1]], constants.BLUE, True),  # J block
+            ([[0, 0], [0, 1], [1, 0], [1, 1]], constants.ORANGE, False),  # O block
+            ([[-1, 0], [0, 0], [0, 1], [1, 1]], constants.GOLD, True),  # Z block
+            ([[0, 0], [1, 0], [2, 0], [1, 1]], constants.PURPLE, True),  # T block
+            ([[0, 0], [1, 0], [2, 0], [0, 1]], constants.CYAN, True),  # J block
+        )
+        # Compute the number of blocks. When the number of blocks is even, we can use it directly but
+        # we have to decrese the number of blocks in line by one when the number is odd (because of the used margin).
+        self.blocks_in_line = bx if bx % 2 == 0 else bx - 1
+        self.blocks_in_pile = by
+        # Score settings
+        self.score = 0
+        # Remember the current speed
+        self.speed = 1
+        # The score level threshold
+        self.score_level = constants.SCORE_LEVEL
+
+    def apply_action(self):
+        """
+        Get the event from the event queue and run the appropriate
+        action.
+        """
+        # Take the event from the event queue.
+        for ev in pygame.event.get():
+            # Check if the close button was fired.
+            if ev.type == pygame.QUIT or (ev.type == pygame.KEYDOWN and ev.unicode == 'q'):
+                self.done = True
+            # Detect the key evevents for game control.
+            if ev.type == pygame.KEYDOWN:
+                if ev.key == pygame.K_DOWN:
+                    self.active_block.move(0, constants.BHEIGHT)
+                if ev.key == pygame.K_LEFT:
+                    self.active_block.move(-constants.BWIDTH, 0)
+                if ev.key == pygame.K_RIGHT:
+                    self.active_block.move(constants.BWIDTH, 0)
+                if ev.key == pygame.K_SPACE:
+                    self.active_block.rotate()
+                if ev.key == pygame.K_p:
+                    self.pause()
+
+            # Detect if the movement event was fired by the timer.
+            if ev.type == constants.TIMER_MOVE_EVENT:
+                self.active_block.move(0, constants.BHEIGHT)
+
+    def pause(self):
+        """
+        Pause the game and draw the string. This function
+        also calls the flip function which draws the string on the screen.
+        """
+        # Draw the string to the center of the screen.
+        self.print_center(["PAUSE", "Press \"p\" to continue"])
+        pygame.display.flip()
+        while True:
+            for ev in pygame.event.get():
+                if ev.type == pygame.KEYDOWN and ev.key == pygame.K_p:
+                    return
+
+    def set_move_timer(self):
+        """
+        Setup the move timer to the
+        """
+        # Setup the time to fire the move event. Minimal allowed value is 1
+        speed = math.floor(constants.MOVE_TICK / self.speed)
+        speed = max(1, speed)
+        pygame.time.set_timer(constants.TIMER_MOVE_EVENT, speed)
+
+    def run(self):
+        # Initialize the game (pygame, fonts)
+        pygame.init()
+        pygame.font.init()
+        self.myfont = pygame.font.SysFont(pygame.font.get_default_font(), constants.FONT_SIZE)
+        self.screen = pygame.display.set_mode((self.resx, self.resy))
+        pygame.display.set_caption("Tetris")
+        # Setup the time to fire the move event every given time
+        self.set_move_timer()
+        # Control variables for the game. The done signal is used
+        # to control the main loop (it is set by the quit action), the game_over signal
+        # is set by the game logic and it is also used for the detection of "game over" drawing.
+        # Finally the new_block variable is used for the requesting of new tetris block.
+        self.done = False
+        self.game_over = False
+        self.new_block = True
+        # Print the initial score
+        self.print_status_line()
+        while not (self.done) and not (self.game_over):
+            # Get the block and run the game logic
+            self.get_block()
+            self.game_logic()
+            self.draw_game()
+        # Display the game_over and wait for a keypress
+        if self.game_over:
+            self.print_game_over()
+        # Disable the pygame stuff
+        pygame.font.quit()
+        pygame.display.quit()
+
+    def print_status_line(self):
+        """
+        Print the current state line
+        """
+        string = ["SCORE: {0}   SPEED: {1}x".format(self.score, self.speed)]
+        self.print_text(string, constants.POINT_MARGIN, constants.POINT_MARGIN)
+
+    def print_game_over(self):
+        """
+        Print the game over string.
+        """
+        # Print the game over text
+        self.print_center(["Game Over", "Press \"q\" to exit"])
+        # Draw the string
+        pygame.display.flip()
+        # Wait untill the space is pressed
+        while True:
+            for ev in pygame.event.get():
+                if ev.type == pygame.QUIT or (ev.type == pygame.KEYDOWN and ev.unicode == 'q'):
+                    return
+
+    def print_text(self, str_lst, x, y):
+        """
+        Print the text on the X,Y coordinates.
+
+        Parameters:
+            - str_lst - list of strings to print. Each string is printed on new line.
+            - x - X coordinate of the first string
+            - y - Y coordinate of the first string
+        """
+        prev_y = 0
+        for string in str_lst:
+            size_x, size_y = self.myfont.size(string)
+            txt_surf = self.myfont.render(string, False, (255, 255, 255))
+            self.screen.blit(txt_surf, (x, y + prev_y))
+            prev_y += size_y
+
+    def print_center(self, str_list):
+        """
+        Print the string in the center of the screen.
+
+        Parameters:
+            - str_lst - list of strings to print. Each string is printed on new line.
+        """
+        max_xsize = max([tmp[0] for tmp in map(self.myfont.size, str_list)])
+        self.print_text(str_list, self.resx / 2 - max_xsize / 2, self.resy / 2)
+
+    def block_colides(self):
+        """
+        Check if the block colides with any other block.
+
+        The function returns True if the collision is detected.
+        """
+        for blk in self.blk_list:
+            # Check if the block is not the same
+            if blk == self.active_block:
+                continue
+                # Detect situations
+            if (blk.check_collision(self.active_block.shape)):
+                return True
+        return False
+
+    def game_logic(self):
+        """
+        Implementation of the main game logic. This function detects colisions
+        and insertion of new tetris blocks.
+        """
+        # Remember the current configuration and try to
+        # apply the action
+        self.active_block.backup()
+        self.apply_action()
+        # Border logic, check if we colide with down border or any
+        # other border. This check also includes the detection with other tetris blocks.
+        down_board = self.active_block.check_collision([self.board_down])
+        any_border = self.active_block.check_collision([self.board_left, self.board_up, self.board_right])
+        block_any = self.block_colides()
+        # Restore the configuration if any collision was detected
+        if down_board or any_border or block_any:
+            self.active_block.restore()
+        # So far so good, sample the previous state and try to move down (to detect the colision with other block).
+        # After that, detect the the insertion of new block. The block new block is inserted if we reached the boarder
+        # or we cannot move down.
+        self.active_block.backup()
+        self.active_block.move(0, constants.BHEIGHT)
+        can_move_down = not self.block_colides()
+        self.active_block.restore()
+        # We end the game if we are on the respawn and we cannot move --> bang!
+        if not can_move_down and (self.start_x == self.active_block.x and self.start_y == self.active_block.y):
+            self.game_over = True
+        # The new block is inserted if we reached down board or we cannot move down.
+        if down_board or not can_move_down:
+            # Request new block
+            self.new_block = True
+            # Detect the filled line and possibly remove the line from the
+            # screen.
+            self.detect_line()
+
+    def detect_line(self):
+        """
+        Detect if the line is filled. If yes, remove the line and
+        move with remaining bulding blocks to new positions.
+        """
+        # Get each shape block of the non-moving tetris block and try
+        # to detect the filled line. The number of bulding blocks is passed to the class
+        # in the init function.
+        for shape_block in self.active_block.shape:
+            tmp_y = shape_block.y
+            tmp_cnt = self.get_blocks_in_line(tmp_y)
+            # Detect if the line contains the given number of blocks
+            if tmp_cnt != self.blocks_in_line:
+                continue
+                # Ok, the full line is detected!
+            self.remove_line(tmp_y)
+            # Update the score.
+            self.score += self.blocks_in_line * constants.POINT_VALUE
+            # Check if we need to speed up the game. If yes, change control variables
+            if self.score > self.score_level:
+                self.score_level *= constants.SCORE_LEVEL_RATIO
+                self.speed *= constants.GAME_SPEEDUP_RATIO
+                # Change the game speed
+                self.set_move_timer()
+
+    def remove_line(self, y):
+        """
+        Remove the line with given Y coordinates. Blocks below the filled
+        line are untouched. The rest of blocks (yi > y) are moved one level done.
+
+        Parameters:
+            - y - Y coordinate to remove.
+        """
+        # Iterate over all blocks in the list and remove blocks with the Y coordinate.
+        for block in self.blk_list:
+            block.remove_blocks(y)
+        # Setup new block list (not needed blocks are removed)
+        self.blk_list = [blk for blk in self.blk_list if blk.has_blocks()]
+
+    def get_blocks_in_line(self, y):
+        """
+        Get the number of shape blocks on the Y coordinate.
+
+        Parameters:
+            - y - Y coordinate to scan.
+        """
+        # Iteraveovel all block's shape list and increment the counter
+        # if the shape block equals to the Y coordinate.
+        tmp_cnt = 0
+        for block in self.blk_list:
+            for shape_block in block.shape:
+                tmp_cnt += (1 if y == shape_block.y else 0)
+        return tmp_cnt
+
+    def draw_board(self):
+        """
+        Draw the white board.
+        """
+        pygame.draw.rect(self.screen, constants.WHITE, self.board_up)
+        pygame.draw.rect(self.screen, constants.WHITE, self.board_down)
+        pygame.draw.rect(self.screen, constants.WHITE, self.board_left)
+        pygame.draw.rect(self.screen, constants.WHITE, self.board_right)
+        # Update the score
+        self.print_status_line()
+
+    def get_block(self):
+        """
+        Generate new block into the game if is required.
+        """
+        if self.new_block:
+            # Get the block and add it into the block list(static for now)
+            tmp = random.randint(0, len(self.block_data) - 1)
+            data = self.block_data[tmp]
+            self.active_block = block.Block(data[0], self.start_x, self.start_y, self.screen, data[1], data[2])
+            self.blk_list.append(self.active_block)
+            self.new_block = False
+
+    def draw_game(self):
+        """
+        Draw the game screen.
+        """
+        # Clean the screen, draw the board and draw
+        # all tetris blocks
+        self.screen.fill(constants.BLACK)
+        self.draw_board()
+        for blk in self.blk_list:
+            blk.draw()
+        # Draw the screen buffer
+        pygame.display.flip()
 
 
 def run_tetris():
-    win = pygame.display.set_mode((s_width, s_height))
-    pygame.display.set_caption('Tetris')
-    main_menu(win)  # start game
+    Tetris(16, 30).run()
 
