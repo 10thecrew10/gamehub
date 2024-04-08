@@ -31,34 +31,28 @@ resize_image = image.resize((150, 150))  # Resize the image
 tetris_picture = ImageTk.PhotoImage(resize_image)
 
 
-def snake_run_handler(current_window):
-    try:
-        current_window.withdraw()
-        run_snake()
-    except Exception as e:
-        print('Error occured:', str(e))
+def game_runner_decorator(game_runner: callable, current_window):
+    def wrapper_function():
+        print('Called')
+        try:
+            current_window.withdraw()
+            game_runner()
+        except Exception as e:
+            print('Error occured:', str(e))
 
-    current_window.deiconify()
+        current_window.deiconify()
 
-
-def tetris_run_handler(current_window):
-    try:
-        current_window.withdraw()
-        run_tetris()
-    except Exception as e:
-        print('Error occured:', str(e))
-
-    current_window.deiconify()
+    wrapper_function()
 
 
 # add buttons
-btn1 = tk.Button(games_frame, image=snake_picture, command=partial(snake_run_handler, root))
+btn1 = tk.Button(games_frame, image=snake_picture, command=partial(game_runner_decorator, run_snake, root))
 btn1.grid(row=0, column=0, sticky='we')
 
-btn2 = tk.Button(games_frame, image=tetris_picture, command=partial(tetris_run_handler, root))
+btn2 = tk.Button(games_frame, image=tetris_picture, command=partial(game_runner_decorator, run_tetris, root))
 btn2.grid(row=0, column=1, sticky='we')
 
-btn3 = tk.Button(games_frame, image=snake_picture, command=partial(snake_run_handler, root))
+btn3 = tk.Button(games_frame, image=snake_picture, command=partial(game_runner_decorator, run_snake, root))
 btn3.grid(row=0, column=2, sticky='we')
 
 games_frame.pack()
