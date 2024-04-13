@@ -163,7 +163,7 @@ def main():
     clock = pygame.time.Clock()
 
     while flag:
-        pygame.time.delay(50)
+        pygame.time.delay(15)
         clock.tick(10)
         s.move()
         headPos = s.head.pos
