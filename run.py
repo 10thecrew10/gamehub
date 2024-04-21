@@ -1,109 +1,276 @@
 import tkinter as tk
-from tkinter import Canvas, Scrollbar
+from tkinter import Canvas, Frame, Label, Button, Scrollbar, simpledialog, messagebox
 from PIL import Image, ImageTk
 from functools import partial
+from user_db import create_users_table, register, login
 
 # Importing game runners
 from games.snake.snake import run_snake
 from games.tetris.tetris import run_tetris
 from games.flappy_bird.main import run_flappy_bird
+from utils import game_runner_decorator
 
 MAX_ITEMS_IN_ROW = 3
 IMAGE_SIZE = (150, 150)
 
-# Main window
-root = tk.Tk()
 
-# Title for the main window
-root.title("GameHub Menu")
+class LoginWindow(tk.Tk):
+    def __init__(self):
+        super().__init__()
 
-# Label for output on the window
-label = tk.Label(root, text="Choose the game you want to play")
-label.pack()
+        self.title("Login / Register")
 
-# Creating a canvas for buttons with scrollbar
-canvas = Canvas(root)
-canvas.pack(side="left", fill="both", expand=True)
+        # Centering the window
+        screen_width = self.winfo_screenwidth()
+        screen_height = self.winfo_screenheight()
+        window_width = 300
+        window_height = 200
+        x = (screen_width // 2) - (window_width // 2)
+        y = (screen_height // 2) - (window_height // 2)
+        self.geometry(f"{window_width}x{window_height}+{x}+{y}")
 
-# Creating a frame for buttons inside the canvas
-games_frame = tk.Frame(canvas)
-canvas.create_window((0, 0), window=games_frame, anchor="nw")
+        # Create main frame
+        main_frame = Frame(self)
+        main_frame.pack(expand=True)
 
-# Configuring columns in the frame
-for i in range(MAX_ITEMS_IN_ROW):
-    games_frame.columnconfigure(i, weight=1)
+        # Label for title
+        title_label = Label(main_frame, text="GameHub Login/Register", font=("Arial", 16))
+        title_label.pack(pady=10)
 
-# Loading game images
-snake_image = ImageTk.PhotoImage(Image.open("games/snake/snake.png").resize(IMAGE_SIZE))
-tetris_image = ImageTk.PhotoImage(Image.open("games/tetris/tetris.png").resize(IMAGE_SIZE))
-flappy_bird_image = ImageTk.PhotoImage(Image.open("games/flappy_bird/flappy_bird.png").resize(IMAGE_SIZE))
+        # Create frame for buttons
+        buttons_frame = Frame(main_frame)
+        buttons_frame.pack(pady=10)
 
-# Function to run games with exception handling
-def game_runner_decorator(game_runner: callable, current_window):
-    def wrapper_function():
+        # Register button
+        register_button = Button(buttons_frame, text="Register", width=10, command=self.open_register_popup)
+        register_button.grid(row=0, column=0, padx=5)
+
+        # Login button
+        login_button = Button(buttons_frame, text="Login", width=10, command=self.open_login_popup)
+        login_button.grid(row=0, column=1, padx=5)
+
+    def open_register_popup(self):
+        popup = tk.Toplevel(self)
+        popup.title("Register")
+
+        # Centering the popup window
+        popup_width = 350  # Увеличиваем ширину окна
+        popup_height = 250  # Увеличиваем высоту окна
+        screen_width = popup.winfo_screenwidth()
+        screen_height = popup.winfo_screenheight()
+        x = (screen_width // 2) - (popup_width // 2)
+        y = (screen_height // 2) - (popup_height // 2)
+        popup.geometry(f"{popup_width}x{popup_height}+{x}+{y}")
+
+        # Username label and entry
+        username_label = Label(popup, text="Enter your username:")
+        username_label.pack(pady=5)
+        username_entry = tk.Entry(popup)
+        username_entry.pack(pady=5, padx=10)
+
+        # Password label and entry
+        password_label = Label(popup, text="Enter your password:")
+        password_label.pack(pady=5)
+        password_entry = tk.Entry(popup, show='*')
+        password_entry.pack(pady=5, padx=10)
+
+        # Repeat password label and entry
+        repeat_password_label = Label(popup, text="Repeat your password:")
+        repeat_password_label.pack(pady=5)
+        repeat_password_entry = tk.Entry(popup, show='*')
+        repeat_password_entry.pack(pady=5, padx=10)
+
+        # Submit button
+        submit_button = Button(popup, text="Register",
+                               command=lambda: self.register(username_entry.get(), password_entry.get(),
+                                                             repeat_password_entry.get()))
+        submit_button.pack(pady=10)
+
+    def open_login_popup(self):
+        popup = tk.Toplevel(self)
+        popup.title("Login")
+
+        # Centering the popup window
+        popup_width = 350  # Увеличиваем ширину окна
+        popup_height = 200  # Меняем высоту окна
+        screen_width = popup.winfo_screenwidth()
+        screen_height = popup.winfo_screenheight()
+        x = (screen_width // 2) - (popup_width // 2)
+        y = (screen_height // 2) - (popup_height // 2)
+        popup.geometry(f"{popup_width}x{popup_height}+{x}+{y}")
+
+        # Username label and entry
+        username_label = Label(popup, text="Enter your username:")
+        username_label.pack(pady=5)
+        username_entry = tk.Entry(popup)
+        username_entry.pack(pady=5, padx=10)
+
+        # Password label and entry
+        password_label = Label(popup, text="Enter your password:")
+        password_label.pack(pady=5)
+        password_entry = tk.Entry(popup, show='*')
+        password_entry.pack(pady=5, padx=10)
+
+        # Submit button
+        submit_button = Button(popup, text="Login",
+                               command=lambda: self.login(username_entry.get(), password_entry.get(), None))
+        submit_button.pack(pady=10)
+
+    def open_popup(self, title, username_text, password_text, repeat_password_text, callback):
+        popup = tk.Toplevel(self)
+        popup.title(title)
+
+        # Username label and entry
+        username_label = Label(popup, text=username_text)
+        username_label.pack(pady=5)
+        username_entry = tk.Entry(popup)
+        username_entry.pack(pady=5)
+
+        # Password label and entry
+        password_label = Label(popup, text=password_text)
+        password_label.pack(pady=5)
+        password_entry = tk.Entry(popup, show='*')
+        password_entry.pack(pady=5)
+
+        if repeat_password_text:
+            # Repeat password label and entry
+            repeat_password_label = Label(popup, text=repeat_password_text)
+            repeat_password_label.pack(pady=5)
+            repeat_password_entry = tk.Entry(popup, show='*')
+            repeat_password_entry.pack(pady=5)
+        else:
+            repeat_password_entry = None
+
+        # Submit button
+        submit_button = Button(popup, text=title, command=lambda: callback(username_entry.get(), password_entry.get(),
+                                                                           repeat_password_entry.get() if repeat_password_entry else None))
+        submit_button.pack(pady=10)
+
+    def register(self, username, password, repeat_password):
+        if username and password and repeat_password:
+            if password == repeat_password:
+                success, message = register(username, password)
+                if success:
+                    messagebox.showinfo("Success", message)
+                    self.destroy()
+                    self.open_game_selection_window()
+                else:
+                    messagebox.showerror("Error", message)
+            else:
+                messagebox.showerror("Error", "Passwords do not match.")
+
+    def login(self, username, password, _):
+        if username and password:
+            success, message = login(username, password)
+            if success:
+                messagebox.showinfo("Success", message)
+                self.destroy()
+                self.open_game_selection_window()
+            else:
+                messagebox.showerror("Error", message)
+
+    def open_game_selection_window(self):
+        root = GameSelectionWindow()
         try:
-            current_window.withdraw()
-            game_runner()
-        except Exception as e:
-            print('Error occured:', str(e))
-        finally:
-            current_window.deiconify()
+            root.grab_set()  # Make the window appear on top of all other windows
+        except tk.TclError:
+            print('See you later!')
+        root.mainloop()
 
-    wrapper_function()
 
-# Creating buttons and labels containers
-buttons = []
-games_pack = [(snake_image, run_snake), (tetris_image, run_tetris), (flappy_bird_image, run_flappy_bird),
-              (snake_image, run_snake), (tetris_image, run_tetris), (flappy_bird_image, run_flappy_bird),
-              (snake_image, run_snake), (tetris_image, run_tetris), (flappy_bird_image, run_flappy_bird),
-              (snake_image, run_snake), (tetris_image, run_tetris), (flappy_bird_image, run_flappy_bird)]
+class GameSelectionWindow(tk.Tk):
+    def __init__(self):
+        super().__init__()
 
-games_pack = games_pack + games_pack.copy()
+        self.title("GameHub Menu")
 
-button_container = None
-for i, (game_image, game_runner) in enumerate(games_pack):
-    game_name = ''
-    if game_runner == run_snake:
-        game_name = 'Snake'
-    elif game_runner == run_tetris:
-        game_name = 'Tetris'
-    elif game_runner == run_flappy_bird:
-        game_name = 'Flappy Bird'
+        # Label for output on the window
+        label = tk.Label(self, text="Choose the game you want to play")
+        label.pack()
 
-    button_container = tk.Frame(games_frame)
-    button_container.grid(row=i // MAX_ITEMS_IN_ROW, column=i % MAX_ITEMS_IN_ROW)
+        # Creating a canvas for buttons with scrollbar
+        canvas = Canvas(self)
+        canvas.pack(side="left", fill="both", expand=True)
 
-    button = tk.Button(button_container, image=game_image, command=partial(game_runner_decorator, game_runner, root))
-    button.pack()
+        # Creating a frame for buttons inside the canvas
+        games_frame = tk.Frame(canvas)
+        canvas.create_window((0, 0), window=games_frame, anchor="nw")
 
-    label = tk.Label(button_container, text=game_name)
-    label.pack()
+        # Configuring columns in the frame
+        for i in range(MAX_ITEMS_IN_ROW):
+            games_frame.columnconfigure(i, weight=1)
 
-    buttons.append(button)
+        # Loading game images
+        self.snake_image = ImageTk.PhotoImage(Image.open("games/snake/snake.png").resize(IMAGE_SIZE))
+        self.tetris_image = ImageTk.PhotoImage(Image.open("games/tetris/tetris.png").resize(IMAGE_SIZE))
+        self.flappy_bird_image = ImageTk.PhotoImage(Image.open("games/flappy_bird/flappy_bird.png").resize(IMAGE_SIZE))
 
-# Adding scrollbar
-scrollbar = Scrollbar(root, orient="vertical", command=canvas.yview)
-scrollbar.pack(side="right", fill="y")
+        # Creating buttons and labels containers
+        buttons = []
+        games_pack = [(self.snake_image, run_snake), (self.tetris_image, run_tetris),
+                      (self.flappy_bird_image, run_flappy_bird),
+                      (self.snake_image, run_snake), (self.tetris_image, run_tetris),
+                      (self.flappy_bird_image, run_flappy_bird),
+                      (self.snake_image, run_snake), (self.tetris_image, run_tetris),
+                      (self.flappy_bird_image, run_flappy_bird),
+                      (self.snake_image, run_snake), (self.tetris_image, run_tetris),
+                      (self.flappy_bird_image, run_flappy_bird)]
 
-canvas.configure(yscrollcommand=scrollbar.set)
+        games_pack = games_pack + games_pack.copy()
 
-# Bind scrollbar to canvas
-canvas.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
+        button_container = None
 
-root.update() # place widgets
+        for i, (game_image, game_runner) in enumerate(games_pack):
+            game_name = ''
+            if game_runner == run_snake:
+                game_name = 'Snake'
+            elif game_runner == run_tetris:
+                game_name = 'Tetris'
+            elif game_runner == run_flappy_bird:
+                game_name = 'Flappy Bird'
 
-container_width = button_container.winfo_reqwidth()
-container_height = button_container.winfo_reqheight()
-res_width = container_width * MAX_ITEMS_IN_ROW + MAX_ITEMS_IN_ROW * 10
-res_height = container_height * 4 + 4 * 6
-root.minsize(res_width, res_height) # set width and height for pretty view
+            button_container = tk.Frame(games_frame)
+            button_container.grid(row=i // MAX_ITEMS_IN_ROW, column=i % MAX_ITEMS_IN_ROW)
 
-screen_width = root.winfo_screenwidth()  # Width of the screen
-screen_height = root.winfo_screenheight()  # Height of the screen
+            button = tk.Button(button_container, image=game_image,
+                               command=partial(game_runner_decorator, game_runner, self))
+            button.pack()
 
-# Calculate Starting X and Y coordinates for Window
-x = (screen_width / 2) - (res_width / 2)
-y = (screen_height / 2) - (res_height / 2)
+            label = tk.Label(button_container, text=game_name)
+            label.pack()
 
-root.geometry('%dx%d+%d+%d' % (res_width, res_height, x, y))
-root.mainloop()
+            buttons.append(button)
+
+        # Adding scrollbar
+        scrollbar = Scrollbar(self, orient="vertical", command=canvas.yview)
+        scrollbar.pack(side="right", fill="y")
+
+        canvas.configure(yscrollcommand=scrollbar.set)
+
+        # Bind scrollbar to canvas
+        canvas.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
+
+        self.update()  # place widgets
+
+        container_width = button_container.winfo_reqwidth()
+        container_height = button_container.winfo_reqheight()
+        res_width = container_width * MAX_ITEMS_IN_ROW + MAX_ITEMS_IN_ROW * 10
+        res_height = container_height * 4 + 4 * 6
+        self.minsize(res_width, res_height)  # set width and height for pretty view
+
+        screen_width = self.winfo_screenwidth()  # Width of the screen
+        screen_height = self.winfo_screenheight()  # Height of the screen
+
+        # Calculate Starting X and Y coordinates for Window
+        x = (screen_width / 2) - (res_width / 2)
+        y = (screen_height / 2) - (res_height / 2)
+
+        self.geometry('%dx%d+%d+%d' % (res_width, res_height, x, y))
+        self.mainloop()
+
+
+
+if __name__ == "__main__":
+    create_users_table()  # Create users table
+    login_window = LoginWindow()
+    login_window.mainloop()
