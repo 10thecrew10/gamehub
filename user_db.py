@@ -38,7 +38,7 @@ def fill_scores_table():
 
     if result:
         cursor.execute('''INSERT INTO games (id, name) VALUES 
-        (1, "snake"),
+        (1, "snake2"),
         (2, "tetris"),
         (3, "flappy bird")
         ''')
@@ -100,7 +100,7 @@ def get_user_id_by_username(username):
 def get_score(user_id, game_id):
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
-    print('user_id=', user_id)
+
     cursor.execute('SELECT score FROM scores WHERE user_id=? AND game_id=?', (user_id, game_id))
     score = cursor.fetchone()
 
@@ -112,7 +112,6 @@ def get_score(user_id, game_id):
         conn.commit()
         conn.close()
         return 0
-
 
 def get_game_id_by_name(game_name: str):
     conn = sqlite3.connect(DB_NAME)

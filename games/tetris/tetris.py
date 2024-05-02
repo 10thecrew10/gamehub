@@ -3,6 +3,7 @@ import random
 import math
 
 from . import block, constants
+from user_db import *
 
 
 class Tetris(object):
@@ -10,7 +11,7 @@ class Tetris(object):
     The class with implementation of tetris game logic.
     """
 
-    def __init__(self, bx, by):
+    def __init__(self, bx, by, game_id, user_id):
         """
         Initialize the tetris object.
 
@@ -18,6 +19,8 @@ class Tetris(object):
             - bx - number of blocks in x
             - by - number of blocks in y
         """
+        self.game_id = game_id
+        self.user_id = user_id
         # Compute the resolution of the play board based on the required number of blocks.
         self.resx = bx * constants.BWIDTH + 2 * constants.BOARD_HEIGHT + constants.BOARD_MARGIN
         self.resy = by * constants.BHEIGHT + 2 * constants.BOARD_HEIGHT + constants.BOARD_MARGIN
@@ -51,7 +54,7 @@ class Tetris(object):
         # Score settings
         self.score = 0
         # Remember the current speed
-        self.speed = 1
+        self.speed = 5
         # The score level threshold
         self.score_level = constants.SCORE_LEVEL
 
@@ -88,7 +91,7 @@ class Tetris(object):
         also calls the flip function which draws the string on the screen.
         """
         # Draw the string to the center of the screen.
-        self.print_center(["PAUSE", "Press \"p\" to continue"])
+        self.print_center_large_red(["PAUSE", "Press \"P\"", "to continue"])
         pygame.display.flip()
         while True:
             for ev in pygame.event.get():
@@ -136,20 +139,22 @@ class Tetris(object):
 
     def print_status_line(self):
         """
-        Print the current state line
+        Print the current state line and update the database with the score.
         """
         string = ["SCORE: {0}   SPEED: {1}x".format(self.score, self.speed)]
         self.print_text(string, constants.POINT_MARGIN, constants.POINT_MARGIN)
 
     def print_game_over(self):
         """
-        Print the game over string.
+        Print the game over string and wait for a keypress. Update the database if the score is a new highest score.
         """
-        # Print the game over text
-        self.print_center(["Game Over", "Press \"q\" to exit"])
-        # Draw the string
+        highest_score = get_score(self.user_id, self.game_id)
+        if self.score > highest_score:
+            update_score(self.user_id, self.game_id, self.score)
+            self.print_center_large_red(["New highest score!", f"Score: {self.score}", "Press \"q\" to exit"])
+        else:
+            self.print_center_large_red(["Game Over", f"Highest score: {highest_score}", "Press \"q\" to exit"])
         pygame.display.flip()
-        # Wait untill the space is pressed
         while True:
             for ev in pygame.event.get():
                 if ev.type == pygame.QUIT or (ev.type == pygame.KEYDOWN and ev.unicode == 'q'):
@@ -180,6 +185,21 @@ class Tetris(object):
         """
         max_xsize = max([tmp[0] for tmp in map(self.myfont.size, str_list)])
         self.print_text(str_list, self.resx / 2 - max_xsize / 2, self.resy / 2)
+
+    def print_center_large_red(self, str_list):
+        """
+        Print the string in the center of the screen with a larger font size and red color.
+
+        Parameters:
+            - str_lst - list of strings to print. Each string is printed on a new line.
+        """
+        max_xsize = max([tmp[0] for tmp in map(self.myfont.size, str_list)])
+        y_offset = self.resy / 2 - (len(str_list) * constants.FONT_SIZE) / 2  # Calculate vertical offset
+        for i, string in enumerate(str_list):
+            txt_surf = self.myfont.render(string, True, (255, 0, 0))  # Red color
+            txt_surf = pygame.transform.scale(txt_surf,
+                                              (txt_surf.get_width() * 2, txt_surf.get_height() * 2))  # Double font size
+            self.screen.blit(txt_surf, (self.resx / 2 - txt_surf.get_width() / 2, y_offset + i * constants.FONT_SIZE))
 
     def block_colides(self):
         """
@@ -323,5 +343,5 @@ class Tetris(object):
 
 
 def run_tetris(game_id: int, user_id: int):
-    Tetris(16, 30).run()
+    Tetris(16, 30, game_id, user_id).run()
 

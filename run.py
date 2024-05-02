@@ -4,7 +4,7 @@ from PIL import Image, ImageTk
 from functools import partial
 
 # Importing game runners
-from games.snake.snake import run_snake
+from games.snake.snaky import run_snake
 from games.tetris.tetris import run_tetris
 from games.flappy_bird.main import run_flappy_bird
 from utils import game_runner_decorator
@@ -210,12 +210,15 @@ class GameSelectionWindow(tk.Tk):
 
         # Creating buttons and labels containers
         buttons = []
-        games_pack = [(self.snake_image, partial(run_snake, 1, self.user_id)),
-                      (self.tetris_image, partial(run_tetris, 2, self.user_id)),
-                      (self.flappy_bird_image, partial(run_flappy_bird, 3, self.user_id)),
-                      (self.snake_image, partial(run_snake, 1, self.user_id)),
-                      (self.tetris_image, partial(run_tetris, 2, self.user_id)),
-                      (self.flappy_bird_image, partial(run_flappy_bird, 3, self.user_id)),
+        snake_id = get_game_id_by_name('Snake')
+        tetris_id = get_game_id_by_name('Tetris')
+        flappybird_id = get_game_id_by_name('Flappy Bird')
+        games_pack = [(self.snake_image, partial(run_snake, snake_id, self.user_id)),
+                      (self.tetris_image, partial(run_tetris, tetris_id, self.user_id)),
+                      (self.flappy_bird_image, partial(run_flappy_bird, flappybird_id, self.user_id)),
+                      (self.snake_image, partial(run_snake, snake_id, self.user_id)),
+                      (self.tetris_image, partial(run_tetris, tetris_id, self.user_id)),
+                      (self.flappy_bird_image, partial(run_flappy_bird, flappybird_id, self.user_id)),
                       ]
 
         games_pack = games_pack + games_pack.copy() + games_pack.copy()
@@ -223,11 +226,11 @@ class GameSelectionWindow(tk.Tk):
 
         for i, (game_image, game_runner) in enumerate(games_pack):
             game_name = ''
-            if game_runner.args[0] == get_game_id_by_name('Snake'):
+            if game_runner.args[0] == snake_id:
                 game_name = 'Snake'
-            elif game_runner.args[0] == get_game_id_by_name('Tetris'):
+            elif game_runner.args[0] == tetris_id:
                 game_name = 'Tetris'
-            elif game_runner.args[0] == get_game_id_by_name('Flappy Bird'):
+            elif game_runner.args[0] == flappybird_id:
                 game_name = 'Flappy Bird'
 
             button_container = tk.Frame(games_frame)
