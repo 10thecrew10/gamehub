@@ -80,5 +80,5 @@ def run_game():
     pygame.quit()
 
 
-def run_flappy_bird():
+def run_flappy_bird(game_id: int, user_id: int):
     run_game()

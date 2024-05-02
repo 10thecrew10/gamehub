@@ -322,6 +322,6 @@ class Tetris(object):
         pygame.display.flip()
 
 
-def run_tetris():
+def run_tetris(game_id: int, user_id: int):
     Tetris(16, 30).run()
 

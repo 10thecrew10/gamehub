@@ -1,11 +1,17 @@
 import pygame
 import random
 
+from user_db import get_score, update_score
+
 width = 500
 height = 500
 
 cols = 25
 rows = 20
+
+pygame.font.init()
+pygame.init()
+font = pygame.font.SysFont(None, 30)
 
 
 class Cube():
@@ -53,7 +59,7 @@ class Snake():
     def move(self):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                pygame.quit()
+                return 1
             keys = pygame.key.get_pressed()
 
             for key in keys:
@@ -122,6 +128,9 @@ def redraw_window():
     draw_grid(width, rows, win)
     s.draw(win)
     snack.draw(win)
+    # Отображаем результат игры
+    score_text = font.render("Score: " + str(len(s.body)), True, (255, 255, 255))
+    win.blit(score_text, (10, 10))
     pygame.display.update()
     pass
 
@@ -153,7 +162,7 @@ def random_snack(rows, item):
     return (x, y)
 
 
-def main():
+def main(game_id: int, user_id: int):
     global s, snack, win
     win = pygame.display.set_mode((width, height))
     s = Snake((255, 0, 0), (10, 10))
@@ -165,10 +174,14 @@ def main():
     while flag:
         pygame.time.delay(15)
         clock.tick(10)
-        s.move()
+        res = s.move()
+        if res == 1:
+            break
         headPos = s.head.pos
+
         if headPos[0] >= 20 or headPos[0] < 0 or headPos[1] >= 20 or headPos[1] < 0:
-            print("Score:", len(s.body))
+            # Показываем результат в окне при проигрыше
+            show_game_over_message(len(s.body), game_id, user_id)
             s.reset((10, 10))
 
         if s.body[0].pos == snack.pos:
@@ -177,12 +190,31 @@ def main():
 
         for x in range(len(s.body)):
             if s.body[x].pos in list(map(lambda z: z.pos, s.body[x + 1:])):
-                print("Score:", len(s.body))
+                # Показываем результат в окне при проигрыше
+                show_game_over_message(len(s.body), game_id, user_id)
                 s.reset((10, 10))
                 break
 
         redraw_window()
 
 
-def run_snake():
-    main()
+def show_game_over_message(score, game_id: int, user_id: int):
+    global win
+    max_score = get_score(user_id, game_id)
+    gamegame_over_text = ''
+    if max_score < score:
+        game_over_text = font.render(f"Congratulations! You have beat your highest score {max_score}! Current score: {score}", True,
+                                     (255, 255, 255))
+        update_score(user_id, game_id, score)
+
+    else:
+        game_over_text = font.render("Game Over. Score: " + str(score) + '. Your maximum is ' + f'{max_score}', True, (255, 255, 255))
+    win.blit(game_over_text, (width // 2 - game_over_text.get_width() // 2, height // 2 - game_over_text.get_height() // 2))
+    pygame.display.update()
+    pygame.time.delay(2000)
+
+
+def run_snake(game_id: int, user_id: int):
+    main(game_id, user_id)
+
+

@@ -2,13 +2,14 @@ import tkinter as tk
 from tkinter import Canvas, Frame, Label, Button, Scrollbar, simpledialog, messagebox
 from PIL import Image, ImageTk
 from functools import partial
-from user_db import create_users_table, register, login
 
 # Importing game runners
 from games.snake.snake import run_snake
 from games.tetris.tetris import run_tetris
 from games.flappy_bird.main import run_flappy_bird
 from utils import game_runner_decorator
+# Importing db funcs
+from user_db import *
 
 MAX_ITEMS_IN_ROW = 3
 IMAGE_SIZE = (150, 150)
@@ -153,7 +154,7 @@ class LoginWindow(tk.Tk):
                 if success:
                     messagebox.showinfo("Success", message)
                     self.destroy()
-                    self.open_game_selection_window()
+                    self.open_game_selection_window(username)
                 else:
                     messagebox.showerror("Error", message)
             else:
@@ -165,12 +166,12 @@ class LoginWindow(tk.Tk):
             if success:
                 messagebox.showinfo("Success", message)
                 self.destroy()
-                self.open_game_selection_window()
+                self.open_game_selection_window(username)
             else:
                 messagebox.showerror("Error", message)
 
-    def open_game_selection_window(self):
-        root = GameSelectionWindow()
+    def open_game_selection_window(self, username: str):
+        root = GameSelectionWindow(username)
         try:
             root.grab_set()  # Make the window appear on top of all other windows
         except tk.TclError:
@@ -179,13 +180,15 @@ class LoginWindow(tk.Tk):
 
 
 class GameSelectionWindow(tk.Tk):
-    def __init__(self):
+    def __init__(self, username: str):
         super().__init__()
 
+        self.username = username
+        self.user_id = get_user_id_by_username(username)
         self.title("GameHub Menu")
 
         # Label for output on the window
-        label = tk.Label(self, text="Choose the game you want to play")
+        label = tk.Label(self, text=f"Welcome, {self.username}! Choose the game you want to play")
         label.pack()
 
         # Creating a canvas for buttons with scrollbar
@@ -207,26 +210,24 @@ class GameSelectionWindow(tk.Tk):
 
         # Creating buttons and labels containers
         buttons = []
-        games_pack = [(self.snake_image, run_snake), (self.tetris_image, run_tetris),
-                      (self.flappy_bird_image, run_flappy_bird),
-                      (self.snake_image, run_snake), (self.tetris_image, run_tetris),
-                      (self.flappy_bird_image, run_flappy_bird),
-                      (self.snake_image, run_snake), (self.tetris_image, run_tetris),
-                      (self.flappy_bird_image, run_flappy_bird),
-                      (self.snake_image, run_snake), (self.tetris_image, run_tetris),
-                      (self.flappy_bird_image, run_flappy_bird)]
+        games_pack = [(self.snake_image, partial(run_snake, 1, self.user_id)),
+                      (self.tetris_image, partial(run_tetris, 2, self.user_id)),
+                      (self.flappy_bird_image, partial(run_flappy_bird, 3, self.user_id)),
+                      (self.snake_image, partial(run_snake, 1, self.user_id)),
+                      (self.tetris_image, partial(run_tetris, 2, self.user_id)),
+                      (self.flappy_bird_image, partial(run_flappy_bird, 3, self.user_id)),
+                      ]
 
-        games_pack = games_pack + games_pack.copy()
-
+        games_pack = games_pack + games_pack.copy() + games_pack.copy()
         button_container = None
 
         for i, (game_image, game_runner) in enumerate(games_pack):
             game_name = ''
-            if game_runner == run_snake:
+            if game_runner.args[0] == get_game_id_by_name('Snake'):
                 game_name = 'Snake'
-            elif game_runner == run_tetris:
+            elif game_runner.args[0] == get_game_id_by_name('Tetris'):
                 game_name = 'Tetris'
-            elif game_runner == run_flappy_bird:
+            elif game_runner.args[0] == get_game_id_by_name('Flappy Bird'):
                 game_name = 'Flappy Bird'
 
             button_container = tk.Frame(games_frame)
@@ -269,8 +270,7 @@ class GameSelectionWindow(tk.Tk):
         self.mainloop()
 
 
-
 if __name__ == "__main__":
-    create_users_table()  # Create users table
+    create_tables()  # Create users table
     login_window = LoginWindow()
     login_window.mainloop()
