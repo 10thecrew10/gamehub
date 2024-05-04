@@ -38,9 +38,9 @@ def fill_scores_table():
 
     if result:
         cursor.execute('''INSERT INTO games (id, name) VALUES 
-        (1, "snake2"),
-        (2, "tetris"),
-        (3, "flappy bird")
+        (1, "Snake"),
+        (2, "Tetris"),
+        (3, "Flappy Bird")
         ''')
         conn.commit()
         conn.close()
@@ -89,7 +89,7 @@ def login(username, password):
 def get_user_id_by_username(username):
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
-    cursor.execute('''SELECT id FROM users WHERE username=?''', username)
+    cursor.execute('''SELECT id FROM users WHERE username=?''', (username,))
     user_id = cursor.fetchone()
     conn.close()
 
@@ -116,13 +116,12 @@ def get_score(user_id, game_id):
 def get_game_id_by_name(game_name: str):
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
-    cursor.execute('''SELECT id FROM games WHERE name="?"''', game_name.lower())
+    cursor.execute('''SELECT id FROM games WHERE LOWER(name)=?''', (game_name.lower(),))
     game_id = cursor.fetchone()
     conn.close()
 
     if game_id:
         return game_id[0]
-
 
 def update_score(user_id, game_id, score):
     db_score = get_score(user_id, game_id)
@@ -133,15 +132,33 @@ def update_score(user_id, game_id, score):
         conn.commit()
         conn.close()
 
-def get_game_id_by_name(game_name: str):
+def get_top_5_highscores(game_id):
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
-    cursor.execute('''SELECT id FROM games WHERE name=?''', (game_name.lower(),))
-    game_id = cursor.fetchone()
+    cursor.execute('''
+        SELECT scores.user_id, scores.score, users.username, games.name
+        FROM scores
+        LEFT OUTER JOIN users ON scores.user_id = users.id
+        LEFT OUTER JOIN games ON scores.game_id = games.id
+        WHERE scores.game_id=?
+        ORDER BY scores.score DESC
+        LIMIT 5
+    ''', (game_id,))
+    res = cursor.fetchall()
     conn.close()
 
-    if game_id:
-        return game_id[0]
+    if res:
+        return res
+
+def get_all_game_ids():
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    cursor.execute('''SELECT id FROM games''')
+    ids = cursor.fetchall()
+    conn.close()
+
+    if ids:
+        return [x[0] for x in ids]
 
 
 def create_tables():

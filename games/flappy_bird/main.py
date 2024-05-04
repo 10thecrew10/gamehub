@@ -109,6 +109,10 @@ def run_game(game_id: int, user_id: int):
                         gamestarted = False
                         sprites.empty()
                         bird, game_start_message, score = create_sprites()
+                    if ev.type == pygame.QUIT:
+                        game_over_event = False
+                        running = False
+                        break
 
 
         for sprite in sprites:
