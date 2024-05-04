@@ -4,7 +4,7 @@ GameHub is a platform for gaming that provides access to multiple games (current
 
 ## Installation
 
-1. Install Python if you haven't already. You can download it from the official website: [python.org](https://www.python.org/downloads/).
+1. Install Python if you haven't already. You can download it from the official website: [python.org](https://www.python.org/downloads/)
 2. Clone the repository using the command: git clone https://github.com/monyami/gamehub.git
 3. Navigate to the project directory: cd your_path_to_gamehub
 4. Install the required dependencies: pip install -r requirements.txt
@@ -43,4 +43,4 @@ You're welcome to contribute to the project by adding new features or fixing bug
 
 ## License
 
-This project is licensed under the [MIT License](LICENSE).
+This project is licensed under the [MIT License](https://en.wikipedia.org/wiki/MIT_License).
